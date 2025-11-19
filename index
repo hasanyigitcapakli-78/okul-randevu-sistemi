@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Okul Randevu Sistemi (Basit)</title>
+  <style>
+    /* Temel sayfa düzeni - yeni başlayan için anlaşılır sınıf/etiket isimleri */
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.4;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(180deg,#f7f9fc,#eef6ff);
+      color: #222;
+    }
+
+    header {
+      background: #2b6cb0;
+      color: white;
+      padding: 18px 20px;
+      text-align: center;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 22px auto;
+      padding: 16px;
+    }
+
+    /* Kart görünümü */
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(30,60,90,0.08);
+      margin-bottom: 16px;
+    }
+
+    h1 { margin: 0; font-size: 20px; }
+    h2 { margin-top: 0; font-size: 18px; }
+
+    /* Form satırları */
+    form label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    form input, form select, form textarea {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    /* Küçük alanlar yan yana */
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+    .row .col {
+      flex: 1;
+    }
+
+    button {
+      background: #2b6cb0;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #4a5568;
+      margin-left: 8px;
+    }
+
+    /* Tablo */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    th { background: #f1f5f9; font-weight: 700; }
+
+    .small {
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .msg {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .msg.success { background: #ecfdf5; color: #065f46; border: 1px solid #bbf7d0;}
+    .msg.error { background: #fff1f2; color: #9f1239; border: 1px solid #fecaca;}
+
+    @media (max-width:600px) {
+      .row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Okul Randevu Sistemi — Basit</h1>
+    <div class="small">Örnek: Öğrenci veli görüşmeleri veya danışman randevuları için</div>
+  </header>
+
+  <main>
+    <section class="card" id="formCard">
+      <h2>Randevu Oluştur</h2>
+
+      <div id="messageArea"></div>
+
+      <form id="appointmentForm">
+        <label for="name">Öğrenci / Veli Adı</label>
+        <input id="name" type="text" placeholder="Örn: Ahmet Yılmaz" required />
+
+        <div class="row">
+          <div class="col">
+            <label for="grade">Sınıf / Sınıfno</label>
+            <input id="grade" type="text" placeholder="Örn: 9/A veya 10" required />
+          </div>
+          <div class="col">
+            <label for="phone">Telefon (opsiyonel)</label>
+            <input id="phone" type="tel" placeholder="+90 5xx xxx xx xx" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="date">Tarih</label>
+            <input id="date" type="date" required />
+          </div>
+          <div class="col">
+            <label for="time">Saat</label>
+            <input id="time" type="time" required />
+          </div>
+        </div>
+
+        <label for="reason">Görüşme Konusu (kısa)</label>
+        <textarea id="reason" rows="2" placeholder="Örn: Ders başarısı, devamsızlık..." required></textarea>
+
+        <div style="display:flex;justify-content:flex-end;">
+          <button type="submit">Randevu Kaydet</button>
+          <button type="button" class="secondary" id="clearAll">Tümünü Sil</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Randevular</h2>
+      <div class="small">Kaydettiğiniz randevular tarayıcınızda saklanır (localStorage).</div>
+
+      <table id="appointmentsTable" aria-live="polite">
+        <thead>
+          <tr>
+            <th>İsim</th>
+            <th>Sınıf</th>
+            <th>Tarih</th>
+            <th>Saat</th>
+            <th>Konu</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="appointmentsBody">
+          <!-- JS ile doldurulacak -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    // Yeni başlayanlar için: tüm ana DOM elemanlarını alıyoruz
+    const form = document.getElementById('appointmentForm');
+    const nameInput = document.getElementById('name');
+    const gradeInput = document.getElementById('grade');
+    const phoneInput = document.getElementById('phone');
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('time');
+    const reasonInput = document.getElementById('reason');
+    const messageArea = document.getElementById('messageArea');
+    const appointmentsBody = document.getElementById('appointmentsBody');
+    const clearAllBtn = document.getElementById('clearAll');
+
+    // localStorage anahtarımız
+    const STORAGE_KEY = 'okul_randevular_v1';
+
+    // Sayfa yüklendiğinde: bugünün tarihinden önceki tarihler seçilemesin
+    function disablePastDates() {
+      const today = new Date();
+      // tarih formatı yyyy-mm-dd
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      dateInput.min = yyyy + '-' + mm + '-' + dd;
+    }
+
+    // Randevu listesini getir (localStorage'dan)
+    function loadAppointments() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    // Randevu listesini kaydet
+    function saveAppointments(list) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    // Ekrana mesaj göster
+    function showMessage(text, type='success') {
+      messageArea.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'msg ' + (type === 'error' ? 'error' : 'success');
+      div.textContent = text;
+      messageArea.appendChild(div);
+      // 4 saniye sonra kaybolur
+      setTimeout(() => {
+        if (messageArea.contains(div)) messageArea.removeChild(div);
+      }, 4000);
+    }
+
+    // Randevuları tabloya çiz
+    function renderTable() {
+      const list = loadAppointments();
+      appointmentsBody.innerHTML = '';
+      if (list.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.className = 'small';
+        td.textContent = 'Henüz randevu yok.';
+        tr.appendChild(td);
+        appointmentsBody.appendChild(tr);
+        return;
+      }
+
+      // Sırala: tarih+saate göre
+      list.sort((a,b) => {
+        const dtA = a.date + ' ' + a.time;
+        const dtB = b.date + ' ' + b.time;
+        return dtA.localeCompare(dtB);
+      });
+
+      for (const item of list) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.grade)}</td>
+          <td>${escapeHtml(item.date)}</td>
+          <td>${escapeHtml(item.time)}</td>
+          <td>${escapeHtml(item.reason)}</td>
+          <td>
+            <button data-id="${item.id}" class="deleteBtn" title="Sil">Sil</button>
+          </td>
+        `;
+        appointmentsBody.appendChild(tr);
+      }
+
+      // Sil butonlarını bağla
+      document.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          deleteAppointment(id);
+        });
+      });
+    }
+
+    // Güvenlik: basit HTML escape (yeni başlayan için)
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    // Yeni randevu ekle
+    function addAppointment(data) {
+      const list = loadAppointments();
+
+      // Çakışma kontrolü: aynı tarihte aynı saatte kaydı olan var mı?
+      const conflict = list.find(item => item.date === data.date && item.time === data.time);
+      if (conflict) {
+        return { ok: false, error: 'Seçilen tarih ve saatte zaten bir randevu var. Başka bir saat seçin.' };
+      }
+
+      // Basit id
+      data.id = 'a' + Date.now() + Math.floor(Math.random() * 100);
+
+      list.push(data);
+      saveAppointments(list);
+      return { ok: true };
+    }
+
+    // Silme
+    function deleteAppointment(id) {
+      let list = loadAppointments();
+      list = list.filter(x => x.id !== id);
+      saveAppointments(list);
+      renderTable();
+      showMessage('Randevu silindi.', 'success');
+    }
+
+    // Tümünü sil (dikkat!)
+    function clearAll() {
+      if (!confirm('Tüm randevuları silmek istediğinize emin misiniz?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      renderTable();
+      showMessage('Tüm randevular silindi.', 'success');
+    }
+
+    // Form submit handler
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      // Basit doğrulama
+      const name = nameInput.value.trim();
+      const grade = gradeInput.value.trim();
+      const phone = phoneInput.value.trim();
+      const date = dateInput.value;
+      const time = timeInput.value;
+      const reason = reasonInput.value.trim();
+
+      if (!name || !grade || !date || !time || !reason) {
+        showMessage('Lütfen tüm zorunlu alanları doldurun.', 'error');
+        return;
+      }
+
+      // Tarih kontrollü: bugünden önce bir tarih seçilemez (extra kontrol)
+      const now = new Date();
+      const chosen = new Date(date + 'T' + time);
+      if (chosen < new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)) {
+        showMessage('Geçmiş bir tarih seçemezsiniz.', 'error');
+        return;
+      }
+
+      const result = addAppointment({ name, grade, phone, date, time, reason });
+      if (!result.ok) {
+        showMessage(result.error, 'error');
+        return;
+      }
+
+      form.reset();
+      disablePastDates(); // tarih min yeniden ayaransın
+      renderTable();
+      showMessage('Randevu kaydedildi.', 'success');
+    });
+
+    clearAllBtn.addEventListener('click', clearAll);
+
+    // Başlatma
+    disablePastDates();
+    renderTable();
+  </script>
+</body>
+</html>
+
